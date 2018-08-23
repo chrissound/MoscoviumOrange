@@ -1,0 +1,13 @@
+executable:
+  source-dirs: src
+  main: Main.hs
+license-file: LICENSE
+build-type: Simple
+maintainer: Chris Stryczynski
+dependencies:
+- base >=4.10 && <4.11
+name: app
+version: '0.1.0.0'
+extra-source-files: ChangeLog.md
+author: Chris Stryczynski
+license: BSD3
