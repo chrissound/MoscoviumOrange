@@ -1,2 +1,3 @@
 :set -Wall
 :set -Wno-type-defaults
+:set args --daemon

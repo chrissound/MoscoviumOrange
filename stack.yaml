@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-10.0
+resolver: lts-13.1
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,6 +37,7 @@ resolver: lts-10.0
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+#- './packages/thyme'
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps: []
@@ -64,3 +65,7 @@ extra-package-dbs: []
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+#
+#build:
+#  library-profiling: true
+#  executable-profiling: true
