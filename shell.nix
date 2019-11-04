@@ -1,6 +1,5 @@
 {
-  nixpkgs ? import <nixpkgs> {}
-, sources ? import ./nix/sources.nix
+  sources ? import ./nix/sources.nix
 , compiler ? "ghc865" } :
 let
   niv = import sources.nixpkgs {
@@ -13,4 +12,4 @@ let
   myHaskellPackages = pkgs.haskell.packages.${compiler}.override {
   };
 in
-myHaskellPackages.callCabal2nix "moscoviumorange" (./.) {}
+(myHaskellPackages.callCabal2nix "moscoviumorange" (./.) {}).env
