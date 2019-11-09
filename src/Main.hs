@@ -65,7 +65,7 @@ parser = do
         <> help "path"
         )
   <|> printRecords <$> switch ( long "print" <> help "Whether to be quiet" )
-  <|> processPendingFiles <$> switch ( long "process-pending" <> help "" )
+  -- <|> processPendingFiles <$> switch ( long "process-pending" <> help "" )
   <|>
   printFilterRecords
     <$> switch ( long "print-filter" <> help "Print with filter" )
@@ -132,7 +132,7 @@ parser = do
         )
       )
   <|>
-  daemon <$> switch ( long "daemon" <> help "Whether to be quiet" )
+  daemon <$> switch ( long "daemon" <> help "Run daemon listener" )
 
 
 work :: Text -> Text -> IO ()
