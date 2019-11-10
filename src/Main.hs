@@ -158,18 +158,5 @@ printFilterRecords _ a b c d e f g h = do
   decodeFileOrFail crFile >>= \case
     Right p -> do
       pp <- getPendingRecords
-      print pp
-      let ppp = p ++ pp
-      forM_ ((filterRecords filter' ppp) :: [CommandRecord]) (putStrLn . show)
+      printRecords' (filterRecords filter' (p ++ pp))
     Left e' -> error $ show e'
-
--- printRecords :: Bool -> IO ()
--- printRecords _ = do
---   decodeFileOrFail crFile >>= \case
---     Right p -> do
---       pp <- getPendingRecords
---       print "pending records:"
---       forM_ (pp :: [CommandRecord]) (putStrLn . show)
---       print "perm records:"
---       forM_ (p :: [CommandRecord]) (putStrLn . show)
---     Left e -> error $ show e

@@ -69,13 +69,16 @@ defaultText = Radiant (Color Nothing) (Color Nothing)
 
 printRecords :: Bool -> IO ()
 printRecords _ = do
-  print "test"
   decodeFileOrFail crFile >>= \case
     Right p -> do
       pp <- getPendingRecords
-      let tableV = fmap (renderCr) (p ++ pp)
-      mapM_ Rainbow.putChunk . toList $ render $ horizontalStationTable tableV
+      printRecords' (p ++ pp)
     Left e -> error $ show e
+
+printRecords' :: [CommandRecord] -> IO ()
+printRecords' r = do
+  let tableV = fmap (renderCr) r
+  mapM_ Rainbow.putChunk . toList $ render $ horizontalStationTable tableV
 
 renderCr :: CommandRecord -> [String]
 renderCr cr = [
