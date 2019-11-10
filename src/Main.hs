@@ -32,6 +32,7 @@ import MoscoviumOrangePrelude
 import CommandRecord
 import Filter
 import Daemon
+import Printer
 
 main :: IO ()
 main = join . customExecParser (prefs showHelpOnError) $
@@ -162,13 +163,13 @@ printFilterRecords _ a b c d e f g h = do
       forM_ ((filterRecords filter' ppp) :: [CommandRecord]) (putStrLn . show)
     Left e' -> error $ show e'
 
-printRecords :: Bool -> IO ()
-printRecords _ = do
-  decodeFileOrFail crFile >>= \case
-    Right p -> do
-      pp <- getPendingRecords
-      print "pending records:"
-      forM_ (pp :: [CommandRecord]) (putStrLn . show)
-      print "perm records:"
-      forM_ (p :: [CommandRecord]) (putStrLn . show)
-    Left e -> error $ show e
+-- printRecords :: Bool -> IO ()
+-- printRecords _ = do
+--   decodeFileOrFail crFile >>= \case
+--     Right p -> do
+--       pp <- getPendingRecords
+--       print "pending records:"
+--       forM_ (pp :: [CommandRecord]) (putStrLn . show)
+--       print "perm records:"
+--       forM_ (p :: [CommandRecord]) (putStrLn . show)
+--     Left e -> error $ show e

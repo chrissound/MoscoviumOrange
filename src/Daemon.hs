@@ -2,6 +2,7 @@
 {-# OPTIONS -Wno-unused-matches #-}
 {-# Language OverloadedStrings #-}
 {-# Language ScopedTypeVariables #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Daemon where
 
 import CommandRecord
@@ -32,8 +33,17 @@ import Network.Socket.ByteString as NBS
 import qualified Data.ByteString.Char8 as C
 
 import Data.Aeson (decode, Object)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.HashMap.Strict (keys, (!))
 
+import GHC.Generics
+
+data Message = Message {
+  command :: String,
+  path :: String } deriving Generic
+
+instance ToJSON Message
+instance FromJSON Message
 
 daemonLoop :: Handle -> TVar [CommandRecord] -> String -> IO ()
 daemonLoop crFifoH pending s = do
@@ -100,31 +110,26 @@ talk pending s conn = do
       ct <- getCurrentTime
       -- atomically $ modifyTVar' pending (\records -> CommandRecord (cs c) x (cs p) : records)
       atomically $ modifyTVar' pending (id)
-      case ((decode $ cs s :: Maybe Object)) of
-        Just x -> case (fmap cs $ keys x) of
-          (["command", "path"] :: [String]) -> do
-            atomically $ modifyTVar' pending
-              (
-                (:) (CommandRecord (cs . show $ x ! "command") ct (cs . show $ x ! "path"))
-              )
-          _ -> print "fucked up"
+      case ((decode $ cs s :: Maybe Message)) of
+        Just x -> do
+          atomically $ modifyTVar' pending
+            (
+              (:) (CommandRecord (cs $ Daemon.command x) ct (cs $ Daemon.path x))
+            )
         _ -> print "fucked up"
       print s
       print "Final message"
       close conn
 
--- handleEntry :: String -> IO ()
--- handleEntry s = do
---   case (decode $ cs s :: Maybe Object) of
---     Just x -> print "processing"
---     Nothing -> print "fucked up"
-
 daemon :: Bool -> IO ()
 daemon _ = do
-  removeFile "monitor.soc"
+  let spath = "/home/chris/.config/moscoviumOrange/monitor.soc"
+  doesFileExist spath >>= bool
+    (pure ())
+    (removeFile spath)
   print "Running daemon"
   soc <- socket AF_UNIX Stream 0
-  bind soc (SockAddrUnix ("monitor.soc"))
+  bind soc $ SockAddrUnix spath
   listen soc maxListenQueue
   processPendingFiles
   x <- newTVarIO []
@@ -145,8 +150,6 @@ daemon _ = do
   -- x <- newTVarIO []
   -- i <- newTMVarIO (0 :: Int)
   -- daemonLoop crFifoH x ""
-
-
 
 processPendingFiles :: IO ()
 processPendingFiles = do
