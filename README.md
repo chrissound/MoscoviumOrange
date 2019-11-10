@@ -1,4 +1,56 @@
-# Install ZSH
+# MoscoviumOrange (WORK IN PROGRESS / experimental)
+
+A better way to log your command line history. It logs the path + time + command.
+
+You can view records by `moscoviumorange --print`. There are options to filter the results by:
+
+- path prefix/suffix/anywhere
+- command prefix/suffix/anywhere
+- before / after (time)
+
+I've tried to make it efficient by only writing to the filesystem if there are new entries, as well as only writing every n seconds.
+
+# Installation
+
+### Nix
+nix-env -i -f https://github.com/chrissound/MoscoviumOrange/archive/master.tar.gz
+
+### Others
+
+Probably install cabal / slack and then build it from there.
+
+## Daemon
+
+Just run `moscoviumorange --daemon`.
+
+With Nixos:
+
+````
+let
+
+  moscoviumorange = pkgs.callPackage ??????????????? {};
+  in
+...
+```
+
+```
+  systemd.user.services = {
+    moscoviumOrange = {
+      enable = true;
+      description = "MoscoviumOrange terminal history";
+      serviceConfig = {
+        Type      = "simple";
+        ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.config/moscoviumOrange/pending/";
+        ExecStart = "${moscoviumorange}/bin/moscoviumorange --daemon";
+        Restart   = "always";
+        RestartSec   = 1;
+      };
+      wantedBy = [ "default.target" ];
+    };
+  };
+```
+
+# Configure with ZSH
 
 Requires: jq + BSD netcat
 
