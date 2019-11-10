@@ -1,5 +1,7 @@
 # MoscoviumOrange (WORK IN PROGRESS / experimental)
 
+![Screenshot](demo.jpeg)
+
 A better way to log your command line history. It logs the path + time + command.
 
 You can view records by `moscoviumorange --print`. There are options to filter the results by:
@@ -25,7 +27,7 @@ Just run `moscoviumorange --daemon`.
 
 With Nixos:
 
-````
+```
 let
 
   moscoviumorange = pkgs.callPackage ??????????????? {};
