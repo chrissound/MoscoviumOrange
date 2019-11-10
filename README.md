@@ -1,6 +1,6 @@
 # MoscoviumOrange (WORK IN PROGRESS / experimental)
 
-![Screenshot](demo.jpeg)
+![Screenshot](demo.jpg)
 
 A better way to log your command line history. It logs the path + time + command.
 
