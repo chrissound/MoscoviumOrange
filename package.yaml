@@ -1,4 +1,8 @@
 executables:
+  moscoviumorange-p:
+    ghc-options: -main-is Main -prof -fprof-auto
+    source-dirs: src
+    main: Main.hs
   moscoviumorange:
     source-dirs: src
     main: Main.hs
