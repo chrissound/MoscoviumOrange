@@ -1,0 +1,94 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.32.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 270e1eda8b4da2265b957b3cb488148640e1dff6c90c611aaab911de5c89ee74
+
+name:           MoscoviumOrange
+version:        0.1.0.0
+author:         Chris Stryczynski
+maintainer:     Chris Stryczynski
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    ChangeLog.md
+
+executable moscoviumorange
+  main-is: Main.hs
+  other-modules:
+      CommandRecord
+      Daemon
+      Filter
+      MoscoviumOrangePrelude
+      Printer
+      ThymeBinaryInstances
+      Paths_MoscoviumOrange
+  hs-source-dirs:
+      src
+  default-extensions: LambdaCase
+  build-depends:
+      aeson
+    , base
+    , binary
+    , binary-orphans
+    , bytestring
+    , containers
+    , directory
+    , network
+    , old-locale
+    , optparse-applicative
+    , optparse-text
+    , pretty-simple
+    , rainbow
+    , rainbox
+    , split
+    , stm
+    , string-conversions
+    , text
+    , thyme
+    , time
+    , unix
+    , unordered-containers
+  default-language: Haskell2010
+
+executable moscoviumorange-p
+  main-is: Main.hs
+  other-modules:
+      CommandRecord
+      Daemon
+      Filter
+      MoscoviumOrangePrelude
+      Printer
+      ThymeBinaryInstances
+      Paths_MoscoviumOrange
+  hs-source-dirs:
+      src
+  default-extensions: LambdaCase
+  ghc-options: -main-is Main -prof -fprof-auto
+  build-depends:
+      aeson
+    , base
+    , binary
+    , binary-orphans
+    , bytestring
+    , containers
+    , directory
+    , network
+    , old-locale
+    , optparse-applicative
+    , optparse-text
+    , pretty-simple
+    , rainbow
+    , rainbox
+    , split
+    , stm
+    , string-conversions
+    , text
+    , thyme
+    , time
+    , unix
+    , unordered-containers
+  default-language: Haskell2010
