@@ -48,25 +48,21 @@ target = strOption
   <> metavar "TARGET"
   <> help "Target for the greeting" )
 
+limiter :: Parser Int
+limiter =
+       option auto (
+         (  long "limit"
+         <> metavar "NUMBER"
+         <> help "limit"
+         <> value 30
+         )
+       )
+
 parser :: Parser (IO ())
 parser = do
-  work
-    <$>
-      textOption
-        (  long "command"
-        <> short 'c'
-        <> metavar "STRING"
-        <> help "command"
-        )
-    <*>
-      textOption
-        (  long "path"
-        <> short 'p'
-        <> metavar "STRING"
-        <> help "path"
-        )
-  <|> printRecords <$> switch ( long "print" <> help "Whether to be quiet" )
-  -- <|> processPendingFiles <$> switch ( long "process-pending" <> help "" )
+  printRecords
+     <$> switch ( long "print" <> help "Whether to be quiet" )
+     <*> limiter
   <|>
   printFilterRecords
     <$> switch ( long "print-filter" <> help "Print with filter" )
@@ -91,6 +87,14 @@ parser = do
         (  long "path-suffix"
         <> metavar "STRING"
         <> help "command"
+        )
+      )
+    <*> 
+      optional (
+      textOption
+        (  long "path"
+        <> metavar "STRING"
+        <> help "path equals"
         )
       )
     <*> many (
@@ -119,6 +123,14 @@ parser = do
     <*> 
       optional (
       textOption
+        (  long "command"
+        <> metavar "STRING"
+        <> help "command equals"
+        )
+      )
+    <*> 
+      optional (
+      textOption
         (  long "before"
         <> metavar "STRING"
         <> help "command"
@@ -132,31 +144,21 @@ parser = do
         <> help "command"
         )
       )
+    <*> limiter
   <|>
   daemon <$> switch ( long "daemon" <> help "Run daemon listener" )
 
-
-work :: Text -> Text -> IO ()
-work a o = do
-  x <- getCurrentTime
-  doesFileExist crFile >>= \case
-    True -> do
-      decodeFileOrFail crFile >>= \case
-        Right p -> encodeFile crFile $ CommandRecord a x o : p
-        Left e -> error $ show e
-    False -> encodeFile crFile $ [CommandRecord a x o]
-
-
 printFilterRecords :: Bool
-  -> [Text] -> Maybe Text -> Maybe Text  -- path
-  -> [Text] -> Maybe Text -> Maybe Text  -- command
+  -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- path
+  -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- command
   -> Maybe Text -> Maybe Text -- before / after
+  -> Int
   -> IO ()
-printFilterRecords _ a b c d e f g h = do
-  let filter' = Filter a b c d e f g h
+printFilterRecords _ pa pb pc pd ca cb cc cd ta tb l = do
+  let filter' = Filter pa pb pc pd ca cb cc cd ta tb
   print filter'
   decodeFileOrFail crFile >>= \case
     Right p -> do
       pp <- getPendingRecords
-      printRecords' (filterRecords filter' (p ++ pp))
+      printRecords' (filterRecords filter' (p ++ pp)) l
     Left e' -> error $ show e'

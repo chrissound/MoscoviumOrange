@@ -2,7 +2,7 @@
 module Printer where
 
 import Rainbox
-import Rainbow ((&))
+import Data.Function ((&))
 import qualified Rainbow
 import Rainbow.Types
 import Data.Sequence (Seq)
@@ -57,7 +57,7 @@ fcol =
     Seq.adjust (\x -> x { _background = defaultText}) 0
 
 xyz :: Seq Cell -> Seq Cell
-xyz = (Rainbox.intersperse (separator defaultText 1))
+xyz = (Seq.intersperse (separator defaultText 1))
 
 myCell :: Rainbow.Radiant -> Rainbow.Radiant -> Alignment Vertical -> Text -> Rainbox.Cell
 myCell b f a vv = Rainbox.Cell v Rainbox.top a b
@@ -67,17 +67,20 @@ myCell b f a vv = Rainbox.Cell v Rainbox.top a b
 defaultText :: Rainbow.Radiant
 defaultText = Radiant (Color Nothing) (Color Nothing)
 
-printRecords :: Bool -> IO ()
-printRecords _ = do
+takeLastN :: Int -> [a] -> [a]
+takeLastN n = reverse . take n . reverse
+
+printRecords :: Bool -> Int -> IO ()
+printRecords _ l = do
   decodeFileOrFail crFile >>= \case
     Right p -> do
       pp <- getPendingRecords
-      printRecords' (p ++ pp)
+      printRecords' (p ++ pp) l
     Left e -> error $ show e
 
-printRecords' :: [CommandRecord] -> IO ()
-printRecords' r = do
-  let tableV = fmap (renderCr) r
+printRecords' :: [CommandRecord] -> Int -> IO ()
+printRecords' r l = do
+  let tableV = fmap (renderCr) $ takeLastN l r
   mapM_ Rainbow.putChunk . toList $ render $ horizontalStationTable tableV
 
 renderCr :: CommandRecord -> [String]
