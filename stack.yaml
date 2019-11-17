@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-13.1
+resolver: lts-14.13
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,10 +37,13 @@ resolver: lts-13.1
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- './rainbox'
 #- './packages/thyme'
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps: []
+# extra-deps: 
+extra-deps:
+- rainbow-0.34.0.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
@@ -66,6 +69,6 @@ extra-package-dbs: []
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
 #
-#build:
-#  library-profiling: true
-#  executable-profiling: true
+build:
+ # library-profiling: true
+ executable-profiling: true
