@@ -81,7 +81,6 @@ savePendingRecordsToFs x i = do
     newEntries <- atomically $ swapTVar x []
     case newEntries of
       [] -> do
-        print "No records to save to FS"
         return ()
       _ -> do
         print "Saving records to FS"
@@ -108,8 +107,6 @@ talk pending s conn = do
       talk pending (s ++ cs msg) conn
     True -> do
       ct <- getCurrentTime
-      -- atomically $ modifyTVar' pending (\records -> CommandRecord (cs c) x (cs p) : records)
-      atomically $ modifyTVar' pending (id)
       case ((decode $ cs s :: Maybe Message)) of
         Just x -> do
           atomically $ modifyTVar' pending
