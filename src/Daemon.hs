@@ -45,34 +45,6 @@ data Message = Message {
 instance ToJSON Message
 instance FromJSON Message
 
-daemonLoop :: Handle -> TVar [CommandRecord] -> String -> IO ()
-daemonLoop crFifoH pending s = do
-  print "wtf"
-  -- hIsEOF crFifoH >>= \case
-  --   False -> do
-  --     cr <- (s ++) <$> hGetLine crFifoH
-  --     print $ show cr
-  --     let input = Data.List.Split.splitOn ([toEnum 0]::String) (cr :: String)
-  --     case input of
-  --       (c:p:[]) -> do
-  --         print "Successfully added record"
-  --         putStrLn ""
-  --         putStrLn ""
-  --         x <- getCurrentTime
-  --         atomically $ modifyTVar' pending (\records -> CommandRecord (cs c) x (cs p) : records)
-  --         daemonLoop crFifoH pending ""
-  --       _  -> do
-  --         putStrLn $ (traceShow "Input^^^") (input !! 0)
-  --         putStrLn $ (traceShow "Input^^^") (input !! 1)
-  --         putStrLn $ (traceShow "cr^^^") cr
-  --         print "Not sufficient input"
-  --         putStrLn ""
-  --         putStrLn ""
-  --         daemonLoop crFifoH pending (cr)
-  --   True -> do
-  --     threadDelay (round $ 0.1 * (10^6))
-  --     daemonLoop crFifoH (pending) s
-
 savePendingRecordsToFs :: TVar [CommandRecord] -> TMVar Int -> IO ()
 savePendingRecordsToFs x i = do
   let seconds = 1
@@ -133,20 +105,6 @@ daemon _ = do
   i <- newTMVarIO (0 :: Int)
   _ <- forkIO $ savePendingRecordsToFs x i
   talkLoop x soc
-  -- print "done????"
-  -- x <- NBS.send soc (cs "\n")
-  -- print x
-  -- sClose soc
-  -- processPendingFiles True
-  -- fileExist crFile >>= \case
-  --   Right _ -> return ()
-  --   Left _ -> do
-  --     putStrLn "Creating new data file"
-  --     encodeFile crFile ([] :: [CommandRecord])
-  -- crFifoH <- openFile crFifo ReadMode
-  -- x <- newTVarIO []
-  -- i <- newTMVarIO (0 :: Int)
-  -- daemonLoop crFifoH x ""
 
 processPendingFiles :: IO ()
 processPendingFiles = do
@@ -192,8 +150,3 @@ crFile = "/home/chris/.config/moscoviumOrange/commandRecord.data"
 
 crDirPending :: FilePath
 crDirPending = "/home/chris/.config/moscoviumOrange/pending/"
-
--- crFifo :: FilePath
--- crFifo = "/home/chris/.config/moscoviumOrange/commandRecord.fifo"
--- --crFifo = "test.fifo"
-
