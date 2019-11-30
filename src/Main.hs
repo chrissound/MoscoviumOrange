@@ -73,7 +73,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "path-prefix"
@@ -81,7 +81,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "path-suffix"
@@ -89,7 +89,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "path"
@@ -104,7 +104,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "command-prefix"
@@ -112,7 +112,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "command-suffix"
@@ -120,7 +120,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "command"
@@ -128,7 +128,7 @@ parser = do
         <> help "command equals"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "before"
@@ -136,7 +136,7 @@ parser = do
         <> help "command"
         )
       )
-    <*> 
+    <*>
       optional (
       textOption
         (  long "after"
