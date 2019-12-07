@@ -55,14 +55,13 @@ savePendingRecordsToFs x i = do
       [] -> do
         return ()
       _ -> do
-        print "Saving records to FS"
         i'' <- atomically $ do
           i' <- takeTMVar i
           putTMVar i (i' + 1)
           return i'
         let pfp = crDirPending ++ (show i'')
         fileExist pfp >>= \ case
-          Right () -> error "file already exists!"
+          Right () -> error "Warning! File already exists! Failed to save new entries."
           Left _ -> encodeFile pfp newEntries
 
 talkLoop :: TVar [CommandRecord] -> Socket -> IO b
@@ -85,7 +84,9 @@ talk pending s conn = do
             (
               (:) (CommandRecord (cs $ Daemon.command x) ct (cs $ Daemon.path x))
             )
-        _ -> print "fucked up"
+        _ -> do
+          putStrLn "Failed to decode message:"
+          putStrLn s
       print s
       print "Final message"
       close conn
