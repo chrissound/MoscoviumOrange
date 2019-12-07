@@ -145,7 +145,7 @@ printFilterRecords :: Bool
 printFilterRecords _ pa pb pc pd ca cb cc cd ta tb l = do
   let filter' = Filter pa pb pc pd ca cb cc cd ta tb
   print filter'
-  decodeFileOrFail crFile >>= \case
+  crFile >>= decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
       printRecords' (filterRecords filter' (p ++ pp)) l

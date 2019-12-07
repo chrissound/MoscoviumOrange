@@ -72,7 +72,7 @@ takeLastN n = reverse . take n . reverse
 
 printRecords :: Bool -> Int -> IO ()
 printRecords _ l = do
-  decodeFileOrFail crFile >>= \case
+  crFile >>= decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
       printRecords' (p ++ pp) l

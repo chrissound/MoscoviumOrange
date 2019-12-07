@@ -27,6 +27,8 @@ import System.Directory
 import Data.List (sort)
 import Control.Monad
 import Control.Concurrent
+import System.Directory
+import Data.Functor
 
 import Network.Socket
 import Network.Socket.ByteString as NBS
@@ -35,6 +37,7 @@ import qualified Data.ByteString.Char8 as C
 import Data.Aeson (decode, Object)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.HashMap.Strict (keys, (!))
+import Control.Arrow
 
 import GHC.Generics
 
@@ -59,10 +62,9 @@ savePendingRecordsToFs x i = do
           i' <- takeTMVar i
           putTMVar i (i' + 1)
           return i'
-        let pfp = crDirPending ++ (show i'')
-        fileExist pfp >>= \ case
+        (crDirPending) <&> (++ show i'') >>= fileExist >>= \ case
           Right () -> error "Warning! File already exists! Failed to save new entries."
-          Left _ -> encodeFile pfp newEntries
+          Left _ -> (crDirPending) <&> (++ show i'') >>= (\z -> encodeFile z newEntries)
 
 talkLoop :: TVar [CommandRecord] -> Socket -> IO b
 talkLoop p sock = do
@@ -93,13 +95,12 @@ talk pending s conn = do
 
 daemon :: Bool -> IO ()
 daemon _ = do
-  let spath = "/home/chris/.config/moscoviumOrange/monitor.soc"
-  doesFileExist spath >>= bool
+  socketFile >>= doesFileExist >>= bool
     (pure ())
-    (removeFile spath)
+    (socketFile >>= removeFile)
   print "Running daemon"
   soc <- socket AF_UNIX Stream 0
-  bind soc $ SockAddrUnix spath
+  socketFile >>= (bind soc . SockAddrUnix)
   listen soc maxListenQueue
   processPendingFiles
   x <- newTVarIO []
@@ -116,38 +117,38 @@ processPendingFiles = do
 deletePendingRecords :: IO ()
 deletePendingRecords = do
   putStrLn "Deleting pending records"
-  p <- getDirectoryContents crDirPending
+  p <- crDirPending >>= getDirectoryContents
   let filtered = sort $ map read $ filter (all isDigit) p :: [Int]
   putStrLn $ "Found (" ++ show filtered ++ ") pending files"
-  forM_ filtered $ \i -> do
-    let pfp = crDirPending ++ show i
-    removeFile pfp
+  forM_ filtered $ \i -> (crDirPending) <&> (++ show i) >>= removeFile
 
 getPendingRecords :: IO [CommandRecord]
 getPendingRecords = do
-  p <- getDirectoryContents crDirPending
+  p <- crDirPending >>= getDirectoryContents
   let filtered = sort $ map read $ filter (all isDigit) p :: [Int]
-  (forM filtered $ \i -> do
-    let pfp = crDirPending ++ show i
-    x <- decodeFile pfp
-    return x
-    ) >>= return . join
+  (forM filtered $ \i -> (crDirPending) <&> (++ show i) >>= decodeFile) >>= return . join
 
 appendRecords :: [CommandRecord] -> IO ()
 appendRecords cr = do
   putStrLn "Appending pending records"
-  doesFileExist crFile >>= \case
+  crFile >>= doesFileExist >>= \case
     True -> do
-      decodeFileOrFail crFile >>= \case
-        Right p -> encodeFile crFile $ p ++ cr
+       crFile >>= decodeFileOrFail >>= \case
+        Right p -> crFile >>= (\x -> encodeFile x $ p ++ cr)
         Left e -> error $ show e
-    False -> encodeFile crFile $ cr
+    False -> crFile >>= (\x -> encodeFile x $ cr)
 
 fileExist :: String -> IO (Either String ())
 fileExist f = doesFileExist f >>= return . bool (Left $ "File does not exist: " ++ f) (Right ())
 
-crFile :: FilePath
-crFile = "/home/chris/.config/moscoviumOrange/commandRecord.data"
+getConfigDir :: IO FilePath
+getConfigDir = getXdgDirectory XdgConfig "moscoviumOrange"
 
-crDirPending :: FilePath
-crDirPending = "/home/chris/.config/moscoviumOrange/pending/"
+crFile :: IO FilePath
+crFile = (getConfigDir <&> (++ "/commandRecord.data"))
+
+crDirPending :: IO FilePath
+crDirPending = (getConfigDir <&> (++ "/pending/"))
+
+socketFile :: IO FilePath
+socketFile = (getConfigDir <&> (++ "/monitor.soc"))
