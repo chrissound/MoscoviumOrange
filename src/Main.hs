@@ -38,15 +38,9 @@ main :: IO ()
 main = join . customExecParser (prefs showHelpOnError) $
   info (helper <*> parser)
   (  fullDesc
-  <> header "General program title/description"
-  <> progDesc "What does this thing do?"
+  -- <> header ""
+  -- <> progDesc "What does this thing do?"
   )
-
-target :: Parser String
-target = strOption
-  (  long "hello"
-  <> metavar "TARGET"
-  <> help "Target for the greeting" )
 
 limiter :: Parser Int
 limiter =
@@ -61,16 +55,15 @@ limiter =
 parser :: Parser (IO ())
 parser = do
   printRecords
-     <$> switch ( long "print" <> help "Whether to be quiet" )
+     <$> switch ( long "print" <> help "Print records" )
      <*> limiter
   <|>
   printFilterRecords
-    <$> switch ( long "print-filter" <> help "Print with filter" )
+    <$> switch ( long "print-filter" <> help "Print records with filter" )
     <*> many (
       textOption
         (  long "path-contains"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -78,7 +71,6 @@ parser = do
       textOption
         (  long "path-prefix"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -86,7 +78,6 @@ parser = do
       textOption
         (  long "path-suffix"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -101,7 +92,6 @@ parser = do
       textOption
         (  long "command-contains"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -109,7 +99,6 @@ parser = do
       textOption
         (  long "command-prefix"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -117,7 +106,6 @@ parser = do
       textOption
         (  long "command-suffix"
         <> metavar "STRING"
-        <> help "command"
         )
       )
     <*>
@@ -133,7 +121,7 @@ parser = do
       textOption
         (  long "before"
         <> metavar "STRING"
-        <> help "command"
+        <> help "filter records that occurred before time"
         )
       )
     <*>
@@ -141,7 +129,7 @@ parser = do
       textOption
         (  long "after"
         <> metavar "STRING"
-        <> help "command"
+        <> help "filter records that occurred after time"
         )
       )
     <*> limiter
