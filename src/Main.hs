@@ -27,6 +27,8 @@ import Data.List.Split
 import Data.String.Conversions
 import Debug.Trace
 import Text.Pretty.Simple (pPrint)
+-- import Data.Time.Format (defaultTimeLocale)
+import System.Locale
 
 import MoscoviumOrangePrelude
 import CommandRecord
@@ -51,6 +53,11 @@ limiter =
          <> value 30
          )
        )
+
+autotime :: ReadM UTCTime
+autotime = eitherReader (\s -> case (parseTime defaultTimeLocale timeFormatThingy s) of
+                            Just x -> Right x; Nothing -> Left "Invalid timestamp"
+                        )
 
 parser :: Parser (IO ())
 parser = do
@@ -118,7 +125,7 @@ parser = do
       )
     <*>
       optional (
-      textOption
+      option autotime
         (  long "before"
         <> metavar "STRING"
         <> help "filter records that occurred before time"
@@ -126,7 +133,7 @@ parser = do
       )
     <*>
       optional (
-      textOption
+      option autotime
         (  long "after"
         <> metavar "STRING"
         <> help "filter records that occurred after time"
@@ -139,11 +146,22 @@ parser = do
 printFilterRecords :: Bool
   -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- path
   -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- command
-  -> Maybe Text -> Maybe Text -- before / after
+  -> Maybe UTCTime -> Maybe UTCTime -- before / after
   -> Int
   -> IO ()
-printFilterRecords _ pa pb pc pd ca cb cc cd ta tb l = do
-  let filter' = Filter pa pb pc pd ca cb cc cd ta tb
+printFilterRecords _ pa pb pc pd ca cb cc cd tb ta l = do
+  let filter' = Filter {
+    pathContains     =      pa
+  , pathPrefix       =      pb
+  , pathSuffix       =      pc
+  , pathEqual        =      pd
+  , commandContains  =      ca
+  , commandPrefix    =      cb
+  , commandSuffix    =      cc
+  , commandEqual     =      cd
+  , before           =      tb
+  , after            =      ta
+  }
   print filter'
   crFile >>= decodeFileOrFail >>= \case
     Right p -> do

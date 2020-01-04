@@ -1,6 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Filter where
 
+
+import Data.Thyme.Clock
 import Data.Text
 
 import CommandRecord
@@ -14,8 +16,8 @@ data Filter = Filter {
  , commandPrefix :: Maybe Text
  , commandSuffix :: Maybe Text
  , commandEqual :: Maybe Text
- , before :: Maybe Text
- , after :: Maybe Text
+ , before :: Maybe UTCTime
+ , after :: Maybe UTCTime
 } deriving Show
 
 filterRecords :: Filter -> [CommandRecord] -> [CommandRecord]

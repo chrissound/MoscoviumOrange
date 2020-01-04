@@ -91,4 +91,7 @@ renderCr cr = [
   ]
 
 myFormatTime :: FormatTime t => t -> String
-myFormatTime fs = formatTime defaultTimeLocale "%x %r" fs
+myFormatTime fs = formatTime defaultTimeLocale timeFormatThingy fs
+
+timeFormatThingy :: String
+timeFormatThingy = "%x %r"
