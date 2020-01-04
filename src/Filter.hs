@@ -40,3 +40,8 @@ filterRecord Filter{..} CommandRecord{..}  =
     , maybe True (\x -> isSuffixOf x command) commandSuffix
     , maybe True ((==) command) commandEqual
   ]
+  <>
+  [
+      maybe True ((<) timedate) before
+    , maybe True ((>) timedate) after
+  ]
