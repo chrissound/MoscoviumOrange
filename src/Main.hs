@@ -54,6 +54,9 @@ limiter =
          )
        )
 
+rawJsonFlag :: Parser Bool
+rawJsonFlag = switch ( long "json" <> help "output as json (should be much faster)" )
+
 autotime :: ReadM UTCTime
 autotime = eitherReader (\s -> case (parseTime defaultTimeLocale timeFormatThingy s) of
                             Just x -> Right x; Nothing -> Left "Invalid timestamp"
@@ -64,10 +67,10 @@ parser = do
   printRecords
      <$> switch ( long "print" <> help "Print records" )
      <*> limiter
+     <*> rawJsonFlag
   <|>
   printFilterRecords
-    <$> switch ( long "print-filter" <> help "Print records with filter" )
-    <*> many (
+    <$> many (
       textOption
         (  long "path-contains"
         <> metavar "STRING"
@@ -127,7 +130,7 @@ parser = do
       optional (
       option autotime
         (  long "before"
-        <> metavar "STRING"
+        <> metavar "timestamp"
         <> help "filter records that occurred before time"
         )
       )
@@ -135,21 +138,23 @@ parser = do
       optional (
       option autotime
         (  long "after"
-        <> metavar "STRING"
+        <> metavar "timestamp"
         <> help "filter records that occurred after time"
         )
       )
     <*> limiter
+    <*> rawJsonFlag
   <|>
   daemon <$> switch ( long "daemon" <> help "Run daemon listener" )
 
-printFilterRecords :: Bool
-  -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- path
+printFilterRecords :: 
+     [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- path
   -> [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- command
   -> Maybe UTCTime -> Maybe UTCTime -- before / after
   -> Int
+  -> Bool
   -> IO ()
-printFilterRecords _ pa pb pc pd ca cb cc cd tb ta l = do
+printFilterRecords pa pb pc pd ca cb cc cd tb ta l rj = do
   let filter' = Filter {
     pathContains     =      pa
   , pathPrefix       =      pb
@@ -166,5 +171,5 @@ printFilterRecords _ pa pb pc pd ca cb cc cd tb ta l = do
   crFile >>= decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
-      printRecords' (filterRecords filter' (p ++ pp)) l
+      printRecords' (filterRecords filter' (p ++ pp)) l rj
     Left e' -> error $ show e'

@@ -15,6 +15,7 @@ dependencies:
   - optparse-text
   # common
   - aeson
+  - aeson-pretty
   - bytestring
   - stm
   - split

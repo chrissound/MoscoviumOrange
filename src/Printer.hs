@@ -8,6 +8,10 @@ import Rainbow.Types
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Text (Text, pack, unpack)
+import qualified Data.ByteString.Lazy.Char8 as BLC8
+
+import Data.Aeson (encode)
+import Data.Aeson.Encode.Pretty
 
 import Data.Binary
 import Data.Binary.Orphans
@@ -70,18 +74,21 @@ defaultText = Radiant (Color Nothing) (Color Nothing)
 takeLastN :: Int -> [a] -> [a]
 takeLastN n = reverse . take n . reverse
 
-printRecords :: Bool -> Int -> IO ()
-printRecords _ l = do
+printRecords :: Bool -> Int -> Bool -> IO ()
+printRecords _ l rj = do
   crFile >>= decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
-      printRecords' (p ++ pp) l
+      printRecords' (p ++ pp) l rj
     Left e -> error $ show e
 
-printRecords' :: [CommandRecord] -> Int -> IO ()
-printRecords' r l = do
+printRecords' :: [CommandRecord] -> Int -> Bool -> IO ()
+printRecords' r l False = do
   let tableV = fmap (renderCr) $ takeLastN l r
   mapM_ Rainbow.putChunk . toList $ render $ horizontalStationTable tableV
+printRecords' r l True = do
+  let tableV = fmap (renderCr) $ takeLastN l r
+  BLC8.putStrLn $ encodePretty tableV
 
 renderCr :: CommandRecord -> [String]
 renderCr cr = [
