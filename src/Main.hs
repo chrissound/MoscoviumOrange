@@ -74,6 +74,7 @@ parser = do
       textOption
         (  long "path-contains"
         <> metavar "STRING"
+        <> help "filter path contains"
         )
       )
     <*>
@@ -81,6 +82,7 @@ parser = do
       textOption
         (  long "path-prefix"
         <> metavar "STRING"
+        <> help "filter path prefix"
         )
       )
     <*>
@@ -88,6 +90,7 @@ parser = do
       textOption
         (  long "path-suffix"
         <> metavar "STRING"
+        <> help "filter path suffix"
         )
       )
     <*>
@@ -102,6 +105,7 @@ parser = do
       textOption
         (  long "command-contains"
         <> metavar "STRING"
+        <> help "filter command contains"
         )
       )
     <*>
@@ -109,6 +113,7 @@ parser = do
       textOption
         (  long "command-prefix"
         <> metavar "STRING"
+        <> help "filter command prefix"
         )
       )
     <*>
@@ -116,6 +121,7 @@ parser = do
       textOption
         (  long "command-suffix"
         <> metavar "STRING"
+        <> help "filter command equals"
         )
       )
     <*>

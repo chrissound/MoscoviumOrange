@@ -5,12 +5,12 @@ A more feature full command line history logger/viewer. It logs the command, pat
 
 Some examples:
 
-- To view the history of all commands in the current directory or it's children:
+- View history of current directory recursively (it's sub directories)
   ```
   moscoviumorange --path-prefix=$PWD
   ```
 
-- To view the history of all commands that had `curl` anywhere.
+- View history of all commands that had "curl" 
   ```
   moscoviumorange --command-contains=curl
   ```
@@ -21,12 +21,15 @@ There are options to filter the results by:
 - command prefix/suffix/anywhere
 - before / after (time)
 
-I've tried to make it efficient by only writing to the filesystem if there are new entries, as well as only writing every n seconds.
+I've tried to make it disk write efficient by only writing to the filesystem if there are new entries, as well as only writing every n seconds.
 
 ## Installation
 
 ### Nix
+
+```
 nix-env -i -f https://github.com/chrissound/MoscoviumOrange/archive/master.tar.gz
+```
 
 ### Others
 
@@ -35,34 +38,34 @@ Probably install cabal / stack and then build it from there.
 ## Help 
 ```
 moscoviumorange --help  
-General program title/description
-
-Usage: moscoviumorange ([--print] [--limit NUMBER] | [--print-filter]
-                       [--path-contains STRING] [--path-prefix STRING]
-                       [--path-suffix STRING] [--path STRING]
-                       [--command-contains STRING] [--command-prefix STRING]
-                       [--command-suffix STRING] [--command STRING]
-                       [--before STRING] [--after STRING] [--limit NUMBER] |
-                       [--daemon])
+Usage: moscoviumorange ([--print] [--limit NUMBER] [--json] |
+                     [--path-contains STRING] [--path-prefix STRING]
+                     [--path-suffix STRING] [--path STRING]
+                     [--command-contains STRING] [--command-prefix STRING]
+                     [--command-suffix STRING] [--command STRING]
+                     [--before timestamp] [--after timestamp] [--limit NUMBER]
+                     [--json] | [--daemon])
 
 Available options:
   -h,--help                Show this help text
-  --print                  Whether to be quiet
+  --print                  Print records
   --limit NUMBER           limit
-  --print-filter           Print with filter
-  --path-contains STRING   command
-  --path-prefix STRING     command
-  --path-suffix STRING     command
+  --json                   output as json (should be much faster)
+  --path-contains STRING   filter path contains
+  --path-prefix STRING     filter path prefix
+  --path-suffix STRING     filter path suffix
   --path STRING            path equals
   --command-contains STRING
-                           command
-  --command-prefix STRING  command
-  --command-suffix STRING  command
+                           filter command contains
+  --command-prefix STRING  filter command prefix
+  --command-suffix STRING  filter command equals
   --command STRING         command equals
-  --before STRING          command
-  --after STRING           command
+  --before timestamp       filter records that occurred before time
+  --after timestamp        filter records that occurred after time
   --limit NUMBER           limit
+  --json                   output as json (should be much faster)
   --daemon                 Run daemon listener
+
 ```
 
 ## Daemon
