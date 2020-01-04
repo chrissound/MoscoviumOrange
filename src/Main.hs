@@ -167,7 +167,6 @@ printFilterRecords pa pb pc pd ca cb cc cd tb ta l rj = do
   , before           =      tb
   , after            =      ta
   }
-  print filter'
   crFile >>= decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
