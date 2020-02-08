@@ -3,11 +3,12 @@ module Printer where
 
 import Rainbox
 import Data.Function ((&))
-import qualified Rainbow
+import Rainbow
 import Rainbow.Types
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Text (Text, pack, unpack)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 
 import Data.Aeson (encode)
@@ -16,7 +17,6 @@ import Data.Aeson.Encode.Pretty
 import Data.Binary
 import Data.Binary.Orphans
 import CommandRecord
-import Daemon
 import Control.Monad
 
 import Data.Map.Strict (Map, fromList, (!))
@@ -24,6 +24,7 @@ import Data.List
 import Data.List.Split
 import Data.Foldable
 import Data.String.Conversions
+import DataStore
 
 -- import Data.Time.Clock
 -- import Data.Time.Format (defaultTimeLocale)
@@ -83,12 +84,17 @@ printRecords _ l rj = do
     Left e -> error $ show e
 
 printRecords' :: [CommandRecord] -> Int -> Bool -> IO ()
-printRecords' r l False = do
+printRecords' = (fmap $ fmap (>>= BLC8.putStrLn . cs)) <$> printRecords''
+
+printRecords'' :: [CommandRecord] -> Int -> Bool -> IO BS.ByteString
+printRecords'' r l True = do
   let tableV = fmap (renderCr) $ takeLastN l r
-  mapM_ Rainbow.putChunk . toList $ render $ horizontalStationTable tableV
-printRecords' r l True = do
-  let tableV = fmap (renderCr) $ takeLastN l r
-  BLC8.putStrLn $ encodePretty tableV
+  pure $ cs $ encodePretty tableV
+printRecords'' r l False = do
+  f <- byteStringMakerFromEnvironment
+  let tableV = (renderCr) <$> takeLastN l r
+  pure $ mconcat $ chunksToByteStrings f
+    $ toList $ render $ horizontalStationTable $ tableV
 
 renderCr :: CommandRecord -> [String]
 renderCr cr = [

@@ -1,9 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS -Wno-unused-imports #-}
 module Filter where
-
 
 import Data.Thyme.Clock
 import Data.Text
+import Data.Aeson
+import Data.Thyme.Format.Aeson
+import GHC.Generics
 
 import CommandRecord
 
@@ -18,7 +22,24 @@ data Filter = Filter {
  , commandEqual :: Maybe Text
  , before :: Maybe UTCTime
  , after :: Maybe UTCTime
-} deriving Show
+} deriving (Show, Generic)
+ 
+instance ToJSON Filter
+instance FromJSON Filter
+
+exa :: Filter
+exa = Filter {
+   pathContains = []
+ , pathPrefix = Nothing
+ , pathSuffix = Nothing
+ , pathEqual = Nothing
+ , commandContains = []
+ , commandPrefix = Nothing
+ , commandSuffix = Nothing
+ , commandEqual = Nothing
+ , before = Nothing
+ , after = Nothing
+}
 
 filterRecords :: Filter -> [CommandRecord] -> [CommandRecord]
 filterRecords f r = Prelude.filter (filterRecord f) r

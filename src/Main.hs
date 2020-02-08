@@ -29,12 +29,16 @@ import Debug.Trace
 import Text.Pretty.Simple (pPrint)
 -- import Data.Time.Format (defaultTimeLocale)
 import System.Locale
+import Control.Monad.State
+import Data.Maybe
+import DataStore
 
 import MoscoviumOrangePrelude
 import CommandRecord
 import Filter
 import Daemon
 import Printer
+import Types
 
 main :: IO ()
 main = join . customExecParser (prefs showHelpOnError) $
@@ -62,6 +66,41 @@ autotime = eitherReader (\s -> case (parseTime defaultTimeLocale timeFormatThing
                             Just x -> Right x; Nothing -> Left "Invalid timestamp"
                         )
 
+rr :: Parser (Mosco ())
+rr = pure $ pure ()
+
+moscparams ::
+  Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> Mosco a -> IO a
+moscparams dd c pp sp x = do
+  ddd <- crFile
+  cd <- pure "not used"
+  ppd <- crDirPending
+  spd <- socketFile
+  evalStateT x
+    $ MoscConfig
+      (maybe ddd cs dd)
+      (maybe cd cs c)
+      (maybe ppd cs pp)
+      (maybe spd cs sp)
+
+moscF' :: Text -> Text -> Mosco ()
+moscF' x x' = do
+  liftIO $ print x
+  liftIO $ print x'
+  liftIO $ print "testabcxyz"
+
+moscparams' :: Parser (Mosco ()) -> Parser (IO ())
+moscparams' x = moscparams
+  <$> optional (textOption ( long "data-path" <> help "main data file" ))
+  <*> optional (textOption ( long "config-path" ))
+  <*> optional (textOption ( long "pending-path" ))
+  <*> optional (textOption ( long "socket-path" ))
+  <*> x
+
 parser :: Parser (IO ())
 parser = do
   printRecords
@@ -69,89 +108,96 @@ parser = do
      <*> limiter
      <*> rawJsonFlag
   <|>
+  moscparams' (
+    printFilterRecordsParser
+    <|>
+      const daemon
+      <$> switch (long "daemon" <> help "Run daemon listener" )
+    )
+
+printFilterRecordsParser :: Parser (Mosco ())
+printFilterRecordsParser =
   printFilterRecords
-    <$> many (
-      textOption
-        (  long "path-contains"
-        <> metavar "STRING"
-        <> help "filter path contains"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "path-prefix"
-        <> metavar "STRING"
-        <> help "filter path prefix"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "path-suffix"
-        <> metavar "STRING"
-        <> help "filter path suffix"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "path"
-        <> metavar "STRING"
-        <> help "path equals"
-        )
-      )
-    <*> many (
-      textOption
-        (  long "command-contains"
-        <> metavar "STRING"
-        <> help "filter command contains"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "command-prefix"
-        <> metavar "STRING"
-        <> help "filter command prefix"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "command-suffix"
-        <> metavar "STRING"
-        <> help "filter command equals"
-        )
-      )
-    <*>
-      optional (
-      textOption
-        (  long "command"
-        <> metavar "STRING"
-        <> help "command equals"
-        )
-      )
-    <*>
-      optional (
-      option autotime
-        (  long "before"
-        <> metavar "timestamp"
-        <> help "filter records that occurred before time"
-        )
-      )
-    <*>
-      optional (
-      option autotime
-        (  long "after"
-        <> metavar "timestamp"
-        <> help "filter records that occurred after time"
-        )
-      )
-    <*> limiter
-    <*> rawJsonFlag
-  <|>
-  daemon <$> switch ( long "daemon" <> help "Run daemon listener" )
+        <$> many (
+          textOption
+            (  long "path-contains"
+            <> metavar "STRING"
+            <> help "filter path contains"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "path-prefix"
+            <> metavar "STRING"
+            <> help "filter path prefix"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "path-suffix"
+            <> metavar "STRING"
+            <> help "filter path suffix"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "path"
+            <> metavar "STRING"
+            <> help "path equals"
+            )
+          )
+        <*> many (
+          textOption
+            (  long "command-contains"
+            <> metavar "STRING"
+            <> help "filter command contains"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "command-prefix"
+            <> metavar "STRING"
+            <> help "filter command prefix"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "command-suffix"
+            <> metavar "STRING"
+            <> help "filter command equals"
+            )
+          )
+        <*>
+          optional (
+          textOption
+            (  long "command"
+            <> metavar "STRING"
+            <> help "command equals"
+            )
+          )
+        <*>
+          optional (
+          option autotime
+            (  long "before"
+            <> metavar "timestamp"
+            <> help "filter records that occurred before time"
+            )
+          )
+        <*>
+          optional (
+          option autotime
+            (  long "after"
+            <> metavar "timestamp"
+            <> help "filter records that occurred after time"
+            )
+          )
+        <*> limiter
+        <*> rawJsonFlag
 
 printFilterRecords :: 
      [Text] -> Maybe Text -> Maybe Text -> Maybe Text -- path
@@ -159,7 +205,7 @@ printFilterRecords ::
   -> Maybe UTCTime -> Maybe UTCTime -- before / after
   -> Int
   -> Bool
-  -> IO ()
+  -> Mosco ()
 printFilterRecords pa pb pc pd ca cb cc cd tb ta l rj = do
   let filter' = Filter {
     pathContains     =      pa
@@ -173,8 +219,6 @@ printFilterRecords pa pb pc pd ca cb cc cd tb ta l rj = do
   , before           =      tb
   , after            =      ta
   }
-  crFile >>= decodeFileOrFail >>= \case
-    Right p -> do
-      pp <- getPendingRecords
-      printRecords' (filterRecords filter' (p ++ pp)) l rj
-    Left e' -> error $ show e'
+  liftIO $ do
+    r <- getAllRecords
+    printRecords' (filterRecords filter' r) l rj

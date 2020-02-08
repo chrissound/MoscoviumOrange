@@ -36,6 +36,7 @@ dependencies:
   - rainbox
   - rainbow
   - unix
+  - mtl
 name: MoscoviumOrange
 version: '0.1.0.0'
 extra-source-files: ChangeLog.md

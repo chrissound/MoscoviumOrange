@@ -5,9 +5,18 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Daemon where
 
+import Printer
+import DataStore
 import CommandRecord
 import MoscoviumOrangePrelude
+import Data.Thyme.Internal.Micro
+import Data.Thyme.Clock
+import Filter
+import qualified Data.Aeson as DAJ
 
+import Control.Applicative
+import Data.List
+import Data.Foldable
 import Data.Thyme.Clock ( getCurrentTime )
 import Data.Binary ( decodeFileOrFail, encode, encodeFile, decodeFile)
 import Data.ByteString (appendFile)
@@ -27,6 +36,8 @@ import System.Directory
 import Data.List (sort)
 import Control.Monad
 import Control.Concurrent
+import Control.Monad
+import System.IO
 import System.Directory
 import Data.Functor
 
@@ -38,8 +49,12 @@ import Data.Aeson (decode, Object)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.HashMap.Strict (keys, (!))
 import Control.Arrow
+import Types (Mosco)
+import qualified Types as MoscoTypes
+import Control.Monad.IO.Class
 
 import GHC.Generics
+import Control.Monad.State
 
 data Message = Message {
   command :: String,
@@ -72,41 +87,63 @@ talkLoop p sock = do
   talk p "" conn
   talkLoop p sock
 
+posFilter :: String -> Socket -> Maybe (IO ())
+posFilter s conn =
+  case (decode $ cs s :: Maybe Filter) of
+    Just x -> pure $ do
+      r <- getAllRecords
+      output <- (printRecords'' $ filterRecords exa r ) 10 False
+      sendAll conn output
+    Nothing -> Nothing
+
+posMsg :: [Char]
+                -> TVar [CommandRecord]
+                -> UTCTime
+                -> Maybe (IO ())
+posMsg s pending ct =
+  case (decode $ cs s :: Maybe Message) of
+    Just x -> pure $ do
+      atomically $ modifyTVar' pending
+                (
+                  (:) (CommandRecord (cs $ Daemon.command x) ct (cs $ Daemon.path x))
+                )
+    _ -> Nothing
+
 talk :: TVar [CommandRecord] ->  String -> Socket -> IO ()
 talk pending s conn = do
   msg <- NBS.recv conn 4096
   case C.null msg of
-    False -> do
-      talk pending (s ++ cs msg) conn
+    False -> talk pending (s ++ cs msg) conn
     True -> do
       ct <- getCurrentTime
-      case ((decode $ cs s :: Maybe Message)) of
-        Just x -> do
-          atomically $ modifyTVar' pending
-            (
-              (:) (CommandRecord (cs $ Daemon.command x) ct (cs $ Daemon.path x))
-            )
-        _ -> do
-          putStrLn "Failed to decode message:"
+      case asum [
+          posMsg s pending ct
+        , posFilter s conn
+        ] of
+        Just x -> x
+        Nothing -> do
+          putStrLn $ "Found invalid daemon message:"
           putStrLn s
-      print s
-      print "Final message"
       close conn
 
-daemon :: Bool -> IO ()
-daemon _ = do
-  socketFile >>= doesFileExist >>= bool
-    (pure ())
-    (socketFile >>= removeFile)
-  print "Running daemon"
-  soc <- socket AF_UNIX Stream 0
-  socketFile >>= (bind soc . SockAddrUnix)
-  listen soc maxListenQueue
-  processPendingFiles
-  x <- newTVarIO []
-  i <- newTMVarIO (0 :: Int)
-  _ <- forkIO $ savePendingRecordsToFs x i
-  talkLoop x soc
+daemon :: Mosco ()
+daemon = do
+  mc <- get
+  liftIO $ do
+    doesFileExist (MoscoTypes.socket mc) >>= bool
+      (pure ())
+      (do
+          print "Removing file..."
+          removeFile $ MoscoTypes.socket mc)
+    print "Running daemon"
+    soc <- socket AF_UNIX Stream 0
+    bind soc . SockAddrUnix . MoscoTypes.socket $ mc
+    listen soc maxListenQueue
+    -- processPendingFiles
+    x <- newTVarIO []
+    i <- newTMVarIO (0 :: Int)
+    -- _ <- forkIO $ savePendingRecordsToFs x i
+    talkLoop x soc
 
 processPendingFiles :: IO ()
 processPendingFiles = do
@@ -122,33 +159,3 @@ deletePendingRecords = do
   putStrLn $ "Found (" ++ show filtered ++ ") pending files"
   forM_ filtered $ \i -> (crDirPending) <&> (++ show i) >>= removeFile
 
-getPendingRecords :: IO [CommandRecord]
-getPendingRecords = do
-  p <- crDirPending >>= getDirectoryContents
-  let filtered = sort $ map read $ filter (all isDigit) p :: [Int]
-  (forM filtered $ \i -> (crDirPending) <&> (++ show i) >>= decodeFile) >>= return . join
-
-appendRecords :: [CommandRecord] -> IO ()
-appendRecords cr = do
-  putStrLn "Appending pending records"
-  crFile >>= doesFileExist >>= \case
-    True -> do
-       crFile >>= decodeFileOrFail >>= \case
-        Right p -> crFile >>= (\x -> encodeFile x $ p ++ cr)
-        Left e -> error $ show e
-    False -> crFile >>= (\x -> encodeFile x $ cr)
-
-fileExist :: String -> IO (Either String ())
-fileExist f = doesFileExist f >>= return . bool (Left $ "File does not exist: " ++ f) (Right ())
-
-getConfigDir :: IO FilePath
-getConfigDir = getXdgDirectory XdgConfig "moscoviumOrange"
-
-crFile :: IO FilePath
-crFile = (getConfigDir <&> (++ "/commandRecord.data"))
-
-crDirPending :: IO FilePath
-crDirPending = (getConfigDir <&> (++ "/pending/"))
-
-socketFile :: IO FilePath
-socketFile = (getConfigDir <&> (++ "/monitor.soc"))
