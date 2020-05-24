@@ -23,7 +23,9 @@ dependencies:
   - time
   - thyme
   - binary
+  - lens
   - binary-orphans
+  - mtl
   - old-locale
   - directory
   - pretty-simple
