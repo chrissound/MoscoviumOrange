@@ -1,67 +1,40 @@
-{-# OPTIONS -Wno-unused-imports #-}
-{-# OPTIONS -Wno-unused-matches #-}
 {-# Language OverloadedStrings #-}
 {-# Language ScopedTypeVariables #-}
-{-# LANGUAGE DeriveGeneric #-}
 module Daemon where
 
 import Printer
 import DataStore
 import CommandRecord
 import MoscoviumOrangePrelude
-import Data.Thyme.Internal.Micro
 import Data.Thyme.Clock
 import Filter
-import qualified Data.Aeson as DAJ
 
-import Control.Applicative
-import Data.List
 import Data.Foldable
 import Data.Thyme.Clock ( getCurrentTime )
-import Data.Binary ( decodeFileOrFail, encode, encodeFile, decodeFile)
-import Data.ByteString (appendFile)
+import Data.Binary ( encodeFile)
+import Data.ByteString (null)
 import Data.Bool (bool)
 import System.Directory ( doesFileExist )
-import System.IO
-    ( Handle, IOMode(ReadMode), hGetLine, openFile, hIsEOF )
-import Data.List.Split ( splitOn )
 import Data.String.Conversions ( cs )
-import Debug.Trace ( traceShow )
 import Control.Concurrent.STM
---import Control.Concurrent.STM.TMVar
-import Control.Concurrent
--- import Control.Concurrent.STM.TVar
 import Data.Char (isDigit)
-import System.Directory
 import Data.List (sort)
-import Control.Monad
 import Control.Concurrent
-import Control.Monad
 import System.IO
 import System.Directory
 import Data.Functor
 
 import Network.Socket
 import Network.Socket.ByteString as NBS
-import qualified Data.ByteString.Char8 as C
 
-import Data.Aeson (decode, Object)
-import Data.Aeson (FromJSON, ToJSON)
-import Data.HashMap.Strict (keys, (!))
-import Control.Arrow
-import Types (Mosco)
+import Data.Aeson (decode)
+import Types (Mosco, MoscState(..))
 import qualified Types as MoscoTypes
 import Control.Monad.IO.Class
 
-import GHC.Generics
 import Control.Monad.State
-
-data Message = Message {
-  command :: String,
-  path :: String } deriving Generic
-
-instance ToJSON Message
-instance FromJSON Message
+import qualified Message.PrintFilterRecord as M_PFR
+import Types
 
 savePendingRecordsToFs :: TVar [CommandRecord] -> TMVar Int -> IO ()
 savePendingRecordsToFs x i = do
@@ -81,19 +54,21 @@ savePendingRecordsToFs x i = do
           Right () -> error "Warning! File already exists! Failed to save new entries."
           Left _ -> (crDirPending) <&> (++ show i'') >>= (\z -> encodeFile z newEntries)
 
-talkLoop :: TVar [CommandRecord] -> Socket -> IO b
+talkLoop :: TVar [CommandRecord] -> Socket -> Mosco b
 talkLoop p sock = do
-  (conn,_) <- accept sock
-  talk p "" conn
+  (liftIO $ accept sock) >>= (talk p "" . fst)
   talkLoop p sock
 
-posFilter :: String -> Socket -> Maybe (IO ())
+posFilter :: String -> Socket -> Maybe (Mosco ())
 posFilter s conn =
-  case (decode $ cs s :: Maybe Filter) of
-    Just x -> pure $ do
-      r <- getAllRecords
-      output <- (printRecords'' $ filterRecords exa r ) 10 False
-      sendAll conn output
+  case (decode $ cs s :: Maybe M_PFR.PrintFilterRecord) of
+    Just x -> do
+      pure $ do
+        cr <- fmap crecords get
+        pr <- liftIO getPendingRecords
+        liftIO $ do
+          output <- (printRecords'' $ filterRecords (M_PFR.filter x) (cr++pr) ) (M_PFR.length x) (M_PFR.rawJson x)
+          sendAll conn output
     Nothing -> Nothing
 
 posMsg :: [Char]
@@ -105,45 +80,55 @@ posMsg s pending ct =
     Just x -> pure $ do
       atomically $ modifyTVar' pending
                 (
-                  (:) (CommandRecord (cs $ Daemon.command x) ct (cs $ Daemon.path x))
+                  (:) (CommandRecord (cs $ Types.command x) ct (cs $ Types.path x))
                 )
     _ -> Nothing
 
-talk :: TVar [CommandRecord] ->  String -> Socket -> IO ()
+talk :: TVar [CommandRecord] ->  String -> Socket -> Mosco ()
 talk pending s conn = do
-  msg <- NBS.recv conn 4096
-  case C.null msg of
-    False -> talk pending (s ++ cs msg) conn
+  msg <- liftIO $ NBS.recv conn (2^16)
+  case Data.ByteString.null msg of
+    False -> do
+      talk pending (s ++ cs msg) conn
     True -> do
-      ct <- getCurrentTime
+      ct <- liftIO getCurrentTime
       case asum [
-          posMsg s pending ct
+          fmap liftIO (posMsg s pending ct)
         , posFilter s conn
         ] of
         Just x -> x
-        Nothing -> do
+        Nothing -> liftIO $ do
           putStrLn $ "Found invalid daemon message:"
-          putStrLn s
-      close conn
+          sendAll conn "Found invalid daemon message:"
+      liftIO $ close conn
 
 daemon :: Mosco ()
 daemon = do
-  mc <- get
   liftIO $ do
+    hSetBuffering stdout LineBuffering
+    hSetBuffering stderr LineBuffering
+  ms <- get
+  let mc = moscConf ms
+  (x,i) <- liftIO $ do
+    x <- newTVarIO []
+    i <- newTMVarIO (0 :: Int)
+    pure (x,i)
+  _ <- liftIO $ do
+    processPendingFiles
+    print "Ruining daemon 1"
+    forkIO $ savePendingRecordsToFs x i
+  soc <- liftIO $ do
     doesFileExist (MoscoTypes.socket mc) >>= bool
       (pure ())
       (do
           print "Removing file..."
           removeFile $ MoscoTypes.socket mc)
-    print "Running daemon"
-    soc <- socket AF_UNIX Stream 0
+    soc <- Network.Socket.socket AF_UNIX Stream 0
     bind soc . SockAddrUnix . MoscoTypes.socket $ mc
     listen soc maxListenQueue
-    -- processPendingFiles
-    x <- newTVarIO []
-    i <- newTMVarIO (0 :: Int)
-    -- _ <- forkIO $ savePendingRecordsToFs x i
-    talkLoop x soc
+    pure soc
+  liftIO $ print "Running daemon 2"
+  talkLoop x soc
 
 processPendingFiles :: IO ()
 processPendingFiles = do

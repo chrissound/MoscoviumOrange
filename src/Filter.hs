@@ -1,5 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -Wno-unused-imports #-}
 module Filter where
 
@@ -33,7 +34,7 @@ exa = Filter {
  , pathPrefix = Nothing
  , pathSuffix = Nothing
  , pathEqual = Nothing
- , commandContains = []
+ , commandContains = ["fld"]
  , commandPrefix = Nothing
  , commandSuffix = Nothing
  , commandEqual = Nothing
@@ -53,16 +54,12 @@ filterRecord Filter{..} CommandRecord{..}  =
     , maybe True (\x -> isPrefixOf x path) pathPrefix
     , maybe True (\x -> isSuffixOf x path) pathSuffix
     , maybe True ((==) path) pathEqual
-  ]
-  <>
-  [
-      Prelude.all (\pc -> isInfixOf (pc) command) commandContains
+    -- command
+    , Prelude.all (\pc -> isInfixOf (pc) command) commandContains
     , maybe True (\x -> isPrefixOf x command) commandPrefix
     , maybe True (\x -> isSuffixOf x command) commandSuffix
     , maybe True ((==) command) commandEqual
-  ]
-  <>
-  [
-      maybe True ((<) timedate) before
+    -- time
+    , maybe True ((<) timedate) before
     , maybe True ((>) timedate) after
   ]

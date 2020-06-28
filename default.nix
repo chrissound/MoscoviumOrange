@@ -20,4 +20,4 @@ let
     };
   };
 in
-(myHaskellPackages.callCabal2nixWithOptions "moscoviumorange" (./.) "--enable-profiling"{})
+(myHaskellPackages.callCabal2nixWithOptions "moscoviumorange" (./.) "" {})

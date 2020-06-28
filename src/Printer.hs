@@ -14,7 +14,7 @@ import qualified Data.ByteString.Lazy.Char8 as BLC8
 import Data.Aeson (encode)
 import Data.Aeson.Encode.Pretty
 
-import Data.Binary
+import qualified Data.Binary as Bin
 import Data.Binary.Orphans
 import CommandRecord
 import Control.Monad
@@ -25,6 +25,9 @@ import Data.List.Split
 import Data.Foldable
 import Data.String.Conversions
 import DataStore
+import Network.Socket hiding (send)
+import Network.Socket.ByteString as NBS
+
 
 -- import Data.Time.Clock
 -- import Data.Time.Format (defaultTimeLocale)
@@ -33,6 +36,14 @@ import DataStore
 import System.Locale
 import Data.Thyme.Clock
 import Data.Thyme.Format
+import Types
+import Filter
+import Filter
+import qualified Message.PrintFilterRecord as M_PFR
+import Control.Monad.IO.Class
+import Control.Monad.State
+import System.Console.Terminfo.Base
+import System.IO
 
 stationColumn :: [(String, Rainbow.Radiant, Alignment Vertical)] -> Seq Cell
 stationColumn = fcol . xyz . Seq.fromList . fmap (\(v,c,a) -> myCell defaultText c a (pack v))
@@ -77,7 +88,7 @@ takeLastN n = reverse . take n . reverse
 
 printRecords :: Bool -> Int -> Bool -> IO ()
 printRecords _ l rj = do
-  crFile >>= decodeFileOrFail >>= \case
+  crFile >>= Bin.decodeFileOrFail >>= \case
     Right p -> do
       pp <- getPendingRecords
       printRecords' (p ++ pp) l rj
@@ -91,8 +102,10 @@ printRecords'' r l True = do
   let tableV = fmap (renderCr) $ takeLastN l r
   pure $ cs $ encodePretty tableV
 printRecords'' r l False = do
-  f <- byteStringMakerFromEnvironment
-  let tableV = (renderCr) <$> takeLastN l r
+  -- setupTermFromEnv >>= print
+  -- f <- byteStringMakerFromEnvironment
+  let f = toByteStringsColors256
+  let tableV = renderCr <$> takeLastN l r
   pure $ mconcat $ chunksToByteStrings f
     $ toList $ render $ horizontalStationTable $ tableV
 
@@ -108,3 +121,41 @@ myFormatTime fs = formatTime defaultTimeLocale timeFormatThingy fs
 
 timeFormatThingy :: String
 timeFormatThingy = "%x %r"
+
+printFilterRecords
+  :: [Text]
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text -- path
+  -> [Text]
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text -- command
+  -> Maybe UTCTime
+  -> Maybe UTCTime -- before / after
+  -> Int
+  -> Bool
+  -> Mosco ()
+printFilterRecords pa pb pc pd ca cb cc cd tb ta l rj = do
+  let filter' = Filter { pathContains    = pa
+                       , pathPrefix      = pb
+                       , pathSuffix      = pc
+                       , pathEqual       = pd
+                       , commandContains = ca
+                       , commandPrefix   = cb
+                       , commandSuffix   = cc
+                       , commandEqual    = cd
+                       , before          = tb
+                       , after           = ta
+                       }
+  let pfr = M_PFR.PrintFilterRecord { M_PFR.filter = filter', M_PFR.length = l, M_PFR.rawJson = rj }
+  ms <- get
+  liftIO $ do
+    withSocketsDo $ do
+      soc <- Network.Socket.socket AF_UNIX Stream 0
+      connect soc (SockAddrUnix $ Types.socket $ moscConf ms)
+      sendAll soc $ cs $ encode pfr
+      shutdown soc ShutdownSend
+      h <- socketToHandle soc ReadMode
+      msg <- BS.hGetContents h
+      putStrLn $ cs msg

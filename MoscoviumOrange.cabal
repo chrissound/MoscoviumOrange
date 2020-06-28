@@ -1,13 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.32.0.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 270e1eda8b4da2265b957b3cb488148640e1dff6c90c611aaab911de5c89ee74
+-- hash: e572ff641f4e61975aabb7698b2c0dd25b69b4990b27a7af5b3842659631a878
 
 name:           MoscoviumOrange
-version:        0.1.0.0
+version:        0.2.0.0
 author:         Chris Stryczynski
 maintainer:     Chris Stryczynski
 license:        BSD3
@@ -21,22 +21,31 @@ executable moscoviumorange
   other-modules:
       CommandRecord
       Daemon
+      DataStore
       Filter
+      Import
+      Message.PrintFilterRecord
       MoscoviumOrangePrelude
+      Other
       Printer
       ThymeBinaryInstances
+      Types
       Paths_MoscoviumOrange
   hs-source-dirs:
       src
   default-extensions: LambdaCase
+  ghc-options: -O2
   build-depends:
       aeson
+    , aeson-pretty
     , base
     , binary
     , binary-orphans
     , bytestring
     , containers
     , directory
+    , lens
+    , mtl
     , network
     , old-locale
     , optparse-applicative
@@ -47,45 +56,7 @@ executable moscoviumorange
     , split
     , stm
     , string-conversions
-    , text
-    , thyme
-    , time
-    , unix
-    , unordered-containers
-  default-language: Haskell2010
-
-executable moscoviumorange-p
-  main-is: Main.hs
-  other-modules:
-      CommandRecord
-      Daemon
-      Filter
-      MoscoviumOrangePrelude
-      Printer
-      ThymeBinaryInstances
-      Paths_MoscoviumOrange
-  hs-source-dirs:
-      src
-  default-extensions: LambdaCase
-  ghc-options: -main-is Main -prof -fprof-auto
-  build-depends:
-      aeson
-    , base
-    , binary
-    , binary-orphans
-    , bytestring
-    , containers
-    , directory
-    , network
-    , old-locale
-    , optparse-applicative
-    , optparse-text
-    , pretty-simple
-    , rainbow
-    , rainbox
-    , split
-    , stm
-    , string-conversions
+    , terminfo
     , text
     , thyme
     , time
