@@ -1,7 +1,7 @@
 # MoscoviumOrange
 ![Screenshot](demo.jpg)
 
-A more feature full command line history logger/viewer. It logs the command, path and timestamp.
+A feature full command line history logger/viewer. It logs the command, path and timestamp.
 
 Some examples:
 
@@ -22,6 +22,12 @@ There are options to filter the results by:
 - before / after (time)
 
 I've tried to make it disk write efficient by only writing to the filesystem if there are new entries, as well as only writing every n seconds.
+
+## Limitations
+
+- There seems to be a tiny bug where the client won't load the latest records untill the daemon is restarted (I've only seen this happen once).
+- There is no lockfile, which makes it easy overwrite your history data by running two instances of the daemon... Yes this happened to me once or twice.
+- No support for timezone / localization.
 
 ## Installation
 
@@ -99,7 +105,7 @@ let
   };
 ```
 
-# Configure with ZSH
+### Configure with ZSH
 
 Requires: jq + BSD netcat
 
