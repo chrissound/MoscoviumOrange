@@ -38,7 +38,9 @@ import           CommandRecord
 import           Filter
 import           Daemon
 import           Recover
+import           ExportDb
 import           Printer
+import           Ui
 import           Types
 import qualified Message.PrintFilterRecord as M_PFR
 import Paths_MoscoviumOrange (version)
@@ -108,6 +110,13 @@ moscparams' x =
 parser :: Parser (IO ())
 parser =
   do
+    ( uiMain
+        <$> switch (long "ui" <> help "brick ui")
+      )
+    <|>
+    ( (const $ appendRecords []) <$> switch (long "datainit" <> help "datainit")
+      )
+    <|>
     ( printRecords
         <$> switch (long "print" <> help "Print records")
         <*> limiter
@@ -118,12 +127,17 @@ parser =
       )
     <|> moscparams'
           ((const daemon <$> switch
-            (long "daemon" <> help "Run daemon listener")<|> printFilterRecordsParser )
+            (long "daemon" <> help "Run daemon listener") <|> printFilterRecordsParser )
           )
     <|> moscparams'
           ((const recover <$> switch
             (long "recover") <|> printFilterRecordsParser )
           )
+    -- <|> moscparams'
+    --       (exportDb
+    --         <$> textOption (long "exportdb" <> metavar "STRING" <> help "path to sqlite db")
+    --         -- <|> printFilterRecordsParser 
+    --       )
 
 printVersion :: Bool -> IO ()
 printVersion _ = print myVersion
