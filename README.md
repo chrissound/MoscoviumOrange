@@ -1,3 +1,6 @@
+# Use Atuin instead!
+I would recommend https://github.com/atuinsh/atuin instead of this project. 
+
 # MoscoviumOrange
 ![Screenshot](demo.jpg)
 
